@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 
 // ---------- shared shell ----------
 function Widget({ title, tag, hint, children }) {
