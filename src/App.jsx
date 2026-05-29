@@ -11,6 +11,7 @@ import {
   MoaMixerDemo,
   ArchitectureDemo,
   PerceptaVMDemo,
+  SudokuDemo,
 } from './components/widgets.jsx'
 
 const CHAPTERS = [
@@ -30,6 +31,7 @@ const CHAPTERS = [
   { id: 'stack', title: 'Research → Code → Proof' },
   { id: 'together', title: 'Putting It Together' },
   { id: 'percepta', title: 'Percepta VM' },
+  { id: 'sudoku', title: 'Watch It Solve' },
 ]
 
 function Section({ id, num, title, intro, children }) {
@@ -511,11 +513,47 @@ Path-Aware:  100 nodes, 100 accumulated-valid (100.0%)`}</Code>
               <Stat num="d = 2" label="attention head → 2D geometric projection" tone="blue" />
               <Stat num="1 byte" label="= 1 token of machine state" />
             </div>
-            <p style={{ fontSize: 13, color: 'var(--faint)' }}>
-              This is the bridge between a language model and a verifier: encode rules as 2D keys and
-              the transformer can <em>check</em> as well as generate. The Sudoku head-to-head lives in{' '}
-              <code className="inline">examples/sudoku_04_percepta_vs.rs</code>.
+
+            <h3>Original vs. our Rust port</h3>
+            <p style={{ fontSize: 14, color: 'var(--faint)', marginTop: 0 }}>
+              Percepta's <code className="inline">transformer-vm</code> is Python + PyTorch with a
+              standalone C++ inference engine. We reimplemented the whole pipeline in pure Rust —
+              same algorithm, no Python/torch/C++ at runtime.
             </p>
+            <DataTable
+              head={['Dimension', 'Percepta transformer-vm', 'KatGPT-RS percepta (Rust)']}
+              rows={[
+                ['Language / runtime', 'Python 3.11 + PyTorch + C++17 engine (BLAS, pybind11)', 'Pure Rust — no Python, torch, or C++'],
+                ['Build pipeline', 'Python (numpy): graph → schedule → weights', 'Rust: graph/ → scheduler.rs → weights.rs'],
+                ['Inference engine', 'standalone transformer.cpp (BLAS)', 'transformer.rs (pure Rust)'],
+                ['MILP scheduler', 'PuLP → HiGHS (CBC fallback)', 'good_lp → HiGHS (MIT), 30 s cap'],
+                ['Hull KV cache', 'CHT in C++ (hull2d_cht.h) via pybind11', 'CHT in Rust (cht.rs / hull.rs), f64'],
+                ['Attention', 'O(log n) hull + brute fallback', 'O(log N) hull + BruteAttentionHead ref'],
+                ['Program input', 'C → WASM (clang)', 'C → WASM (clang) · also Rust src + raw .wasm'],
+                ['Specialization', 'specialize.py (Futamura)', 'specialize.rs (Futamura)'],
+                ['Dependencies', 'numpy, torch, pulp, LLVM/clang, C++17, uv', 'one crate (+ good_lp/highs), gated --features percepta'],
+                ['License', 'Apache-2.0', 'MIT (distilled, attributed)'],
+                ['Throughput', '~30K tok/s (C++ BLAS engine)', <span>fair head-to-head pending <Badge kind="gated">Plan 064</Badge></span>],
+              ]}
+            />
+            <p style={{ fontSize: 13, color: 'var(--faint)' }}>
+              Honest note: the throughput numbers aren't comparable yet — the existing{' '}
+              <code className="inline">examples/sudoku_04_percepta_vs.rs</code> pits our Rust hull
+              backtracker against their WASM-executing transformer (different algorithms). The
+              apples-to-apples run — same algorithm, same machine, Rust vs C++ — lands with Plan 064.
+            </p>
+            <p style={{ fontSize: 13, color: 'var(--faint)' }}>
+              This is also the bridge between a language model and a verifier: encode rules as 2D keys
+              and the transformer can <em>check</em> as well as generate.
+            </p>
+          </Section>
+
+          {/* 17 --------------------------------------------------- */}
+          <Section
+            id="sudoku" num={17} title="Watch It Solve — Live in Your Browser"
+            intro="The real Rust solver, compiled to WebAssembly and running right here. Same engine as examples/sudoku_04_percepta_vs.rs — a backtracking solver whose execution trace feeds the O(log N) convex-hull cache. Pick an engine and watch it think."
+          >
+            <SudokuDemo />
           </Section>
 
           <div className="footer">

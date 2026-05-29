@@ -1,0 +1,16 @@
+[package]
+name = "sudoku-wasm"
+version = "0.1.0"
+edition = "2021"
+description = "Pure-Rust Sudoku hull-backtracking solver, compiled to WASM for the KatGPT-RS web demo. Ported from katgpt-rs src/percepta/legacy.rs."
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "=0.2.120"
+
+[profile.release]
+opt-level = "z"
+lto = true

@@ -1113,3 +1113,211 @@ export function PerceptaVMDemo() {
     </Widget>
   );
 }
+
+// ============================================================
+// Sudoku — live in-browser WASM solver (3 engines, log + trace)
+// Powered by crates/sudoku-wasm (port of src/percepta/legacy.rs).
+// ============================================================
+const SUDOKU_ENGINES = [
+  { id: '9x9', label: '9×9' },
+  { id: 'spec', label: 'Speculative' },
+  { id: 'percepta', label: 'Percepta' },
+]
+
+// turn an 81-char string into a 9×9 array of digits (0 = empty)
+function parseGrid(s) {
+  const g = Array.from({ length: 9 }, () => Array(9).fill(0))
+  for (let i = 0; i < 81 && i < s.length; i++) g[(i / 9) | 0][i % 9] = +s[i] || 0
+  return g
+}
+
+// engine-specific log line for one event; returns {text,color} or null
+function fmtEvent(engine, ev, ctx) {
+  const r = (ev.r ?? 0) + 1, c = (ev.c ?? 0) + 1, d = ev.d
+  if (engine === '9x9') {
+    if (ev.k === 0) return { text: `Trying ${d} at row ${r}, col ${c}.`, color: 'cy' }
+    if (ev.k === 1) return { text: 'Looks good.', color: 'gn' }
+    if (ev.k === 2) return { text: 'Contradiction.', color: 'rd' }
+    if (ev.k === 3) return { text: `Undoing row ${r} col ${c}.`, color: 'or' }
+    if (ev.k === 4) return { text: `Solved in ${ctx.steps} steps.`, color: 'gn' }
+  } else if (engine === 'spec') {
+    if (ev.k === 0) {
+      const cell = `${ev.r},${ev.c}`
+      if (ctx.lastCell !== cell) { ctx.lastCell = cell; return { text: `Cell (${r},${c}): draft 1–9 →`, color: 'cy' } }
+      return null
+    }
+    if (ev.k === 2) return { text: `  ✗ ${d} pruned (row/col/box)`, color: 'rd' }
+    if (ev.k === 1) return { text: `  ✓ ${d} verified → place`, color: 'gn' }
+    if (ev.k === 3) return { text: `  ↩ undo (${r},${c})`, color: 'or' }
+    if (ev.k === 4) return { text: 'All cells verified. Solved.', color: 'gn' }
+  } else {
+    // percepta: WASM execution trace framing
+    if (ev.k === 1) { ctx.pc++; return { text: `step ${ctx.pc}: ▸ place ${d} @ (${r},${c})`, color: 'cy' } }
+    if (ev.k === 2) return null
+    if (ev.k === 3) { ctx.pc++; return { text: `step ${ctx.pc}: ◂ backtrack (${r},${c})`, color: 'or' } }
+    if (ev.k === 4) return { text: `halt — trace ${ctx.trace} → hull ${ctx.hull} vertices`, color: 'gn' }
+  }
+  return null
+}
+
+export function SudokuDemo() {
+  const [solveFn, setSolveFn] = useState(null)
+  const [data, setData] = useState(null)
+  const [engine, setEngine] = useState('9x9')
+  const [view, setView] = useState('log')
+  const [, setTick] = useState(0)
+  const [done, setDone] = useState(false)
+
+  // mutable playback state
+  const grid = useRef(Array.from({ length: 9 }, () => Array(9).fill(0)))
+  const clues = useRef(Array.from({ length: 9 }, () => Array(9).fill(false)))
+  const log = useRef([])
+  const trace = useRef([])
+  const idx = useRef(0)
+  const ctx = useRef({})
+
+  // lazy-load the wasm module once
+  useEffect(() => {
+    let live = true
+    import('../wasm/sudoku/sudoku_wasm.js')
+      .then((m) => m.default().then(() => { if (live) setSolveFn(() => m.solve) }))
+      .catch((e) => console.error('sudoku wasm load failed', e))
+    return () => { live = false }
+  }, [])
+
+  // (re)solve whenever the engine changes
+  useEffect(() => {
+    if (!solveFn) return
+    const t0 = performance.now()
+    const json = solveFn('percepta', 8000)
+    const ms = performance.now() - t0
+    const d = JSON.parse(json)
+    d.solveMs = ms
+    d.stepsPerSec = Math.round(d.steps / (ms / 1000))
+    // aggregate counts once (avoids re-filtering 8k events every frame)
+    let tries = 0, pruned = 0, placed = 0
+    for (const e of d.events) {
+      if (e.k === 0) tries++
+      else if (e.k === 2) pruned++
+      else if (e.k === 1) placed++
+    }
+    d.tries = tries; d.pruned = pruned; d.placed = placed
+    setData(d)
+    // reset playback
+    const g0 = parseGrid(d.puzzle)
+    grid.current = g0.map((row) => row.slice())
+    clues.current = g0.map((row) => row.map((v) => v > 0))
+    log.current = []
+    trace.current = []
+    idx.current = 0
+    ctx.current = { steps: d.steps, hull: d.hull, trace: d.trace, lastCell: '', pc: 0 }
+    setDone(false)
+    setTick((t) => t + 1)
+  }, [solveFn, engine])
+
+  // playback loop — reveal a chunk of events per frame
+  useEffect(() => {
+    if (!data || done) return
+    const CHUNK = engine === '9x9' ? 5 : 6
+    const id = setInterval(() => {
+      const evs = data.events
+      let n = 0
+      while (n < CHUNK && idx.current < evs.length) {
+        const ev = evs[idx.current++]
+        // apply to board
+        if (ev.k === 1) { grid.current[ev.r][ev.c] = ev.d; trace.current.push(ev.d) }
+        else if (ev.k === 3) { grid.current[ev.r][ev.c] = 0; trace.current.push(-1) }
+        const line = fmtEvent(engine, ev, ctx.current)
+        if (line) { log.current.push(line); if (log.current.length > 200) log.current.shift() }
+        n++
+      }
+      if (idx.current >= evs.length) setDone(true)
+      setTick((t) => t + 1)
+    }, 55)
+    return () => clearInterval(id)
+  }, [data, engine, done])
+
+  const replay = () => {
+    if (!data) return
+    const g0 = parseGrid(data.puzzle)
+    grid.current = g0.map((row) => row.slice())
+    log.current = []
+    trace.current = []
+    idx.current = 0
+    ctx.current = { steps: data.steps, hull: data.hull, trace: data.trace, lastCell: '', pc: 0 }
+    setDone(false)
+    setTick((t) => t + 1)
+  }
+
+  // stat line per engine
+  const statLine = () => {
+    if (!data) return ''
+    if (engine === 'percepta')
+      return `${data.trace.toLocaleString()} trace → ${data.hull} hull (${Math.round(data.trace / Math.max(data.hull, 1))}× · O(log n)) · ${data.stepsPerSec.toLocaleString()} steps/s`
+    if (engine === 'spec')
+      return `${data.tries.toLocaleString()} drafted · ${data.pruned.toLocaleString()} pruned (${Math.round((data.pruned / Math.max(data.tries, 1)) * 100)}%) · ${data.placed.toLocaleString()} placed`
+    return `${data.steps.toLocaleString()} steps · ${data.stepsPerSec.toLocaleString()} steps/s · solved in ${data.solveMs.toFixed(2)} ms`
+  }
+
+  const tokens = trace.current.slice(-120)
+  const lines = log.current.slice(-15)
+
+  return (
+    <Widget
+      title="Watch it solve — live WASM"
+      tag={solveFn ? 'sudoku-wasm' : 'loading wasm…'}
+      hint="real Rust solver compiled to WebAssembly, running in your browser"
+    >
+      <div className="sk-tabs">
+        {SUDOKU_ENGINES.map((e) => (
+          <button key={e.id} type="button"
+            className={`sk-tab ${engine === e.id ? 'on' : ''}`}
+            onClick={() => setEngine(e.id)}>{e.label}</button>
+        ))}
+        <button type="button" className="sk-replay" onClick={replay}>↻ replay</button>
+      </div>
+
+      <div className="sk-body">
+        <div className="sk-left">
+          <div className="sk-user">
+            <div className="sk-role">USER</div>
+            <div className="sk-prompt">Solve this Sudoku puzzle:</div>
+          </div>
+          <div className="sk-stat">
+            <span className="sk-bolt">⚡</span> {statLine()}
+          </div>
+          <div className="sk-assistant">
+            <div className="sk-role">ASSISTANT</div>
+            <div className="sk-stream">
+              {view === 'log'
+                ? lines.map((l, i) => <div key={i} className={`sk-line ${l.color}`}>{l.text}</div>)
+                : <div className="sk-trace">{tokens.map((t, i) =>
+                    <span key={i} className={t < 0 ? 'tk back' : 'tk'}>{t < 0 ? '↩' : t}</span>)}</div>}
+              {!done && <span className="sk-caret" />}
+            </div>
+            <div className="sk-subtabs">
+              <button type="button" className={view === 'log' ? 'on' : ''} onClick={() => setView('log')}>Readable log</button>
+              <button type="button" className={view === 'trace' ? 'on' : ''} onClick={() => setView('trace')}>Token trace</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="sk-board">
+          {grid.current.map((row, r) => row.map((v, c) => (
+            <div key={`${r}-${c}`}
+              className={`sk-cell ${clues.current[r]?.[c] ? 'clue' : v ? 'fill' : ''} ${c % 3 === 2 && c !== 8 ? 'br' : ''} ${r % 3 === 2 && r !== 8 ? 'bb' : ''}`}>
+              {v || ''}
+            </div>
+          )))}
+        </div>
+      </div>
+      <p style={{ fontSize: 12.5, color: 'var(--faint)', marginTop: 14, marginBottom: 0 }}>
+        All three tabs run the same real solver from <code className="inline">crates/sudoku-wasm</code>{' '}
+        (a port of <code className="inline">src/percepta/legacy.rs</code>), compiled to WebAssembly —
+        the trace is computed live, not recorded. <strong>9×9</strong> shows the raw backtracking log;{' '}
+        <strong>Speculative</strong> reframes each cell's digit trials as draft → prune → verify;{' '}
+        <strong>Percepta</strong> reports the execution trace compressed by the O(log n) convex hull.
+      </p>
+    </Widget>
+  )
+}

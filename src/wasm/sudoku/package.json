@@ -1,0 +1,17 @@
+{
+  "name": "sudoku-wasm",
+  "type": "module",
+  "description": "Pure-Rust Sudoku hull-backtracking solver, compiled to WASM for the KatGPT-RS web demo. Ported from katgpt-rs src/percepta/legacy.rs.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "files": [
+    "sudoku_wasm_bg.wasm",
+    "sudoku_wasm.js",
+    "sudoku_wasm.d.ts"
+  ],
+  "main": "sudoku_wasm.js",
+  "types": "sudoku_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

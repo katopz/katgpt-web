@@ -4,3 +4,6 @@ dist-ssr
 *.local
 .DS_Store
 .vite
+
+# Rust build artifacts (the wasm-pack output in src/wasm/ is committed)
+crates/*/target/
