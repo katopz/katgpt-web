@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Stat, Card, Code, Pipeline, DataTable, Badge } from './components/ui.jsx'
+import { Stat, Card, Code, Pipeline, DataTable, Badge, BarChart } from './components/ui.jsx'
 import {
   TokenizerDemo,
   TemperatureSampler,
@@ -8,6 +8,9 @@ import {
   AcceptLengthDemo,
   RavenSlotsDemo,
   QuantizationDemo,
+  MoaMixerDemo,
+  ArchitectureDemo,
+  PerceptaVMDemo,
 } from './components/widgets.jsx'
 
 const CHAPTERS = [
@@ -26,6 +29,7 @@ const CHAPTERS = [
   { id: 'benchmarks', title: 'Benchmark Results' },
   { id: 'stack', title: 'Research → Code → Proof' },
   { id: 'together', title: 'Putting It Together' },
+  { id: 'percepta', title: 'Percepta VM' },
 ]
 
 function Section({ id, num, title, intro, children }) {
@@ -130,7 +134,7 @@ export default function App() {
             </p>
             <div className="grid-3">
               <Stat num="27" label="vocab size (BOS + a–z)" />
-              <Stat num="1.82×" label="speculative speedup vs AR" tone="green" />
+              <Stat num="7–8" label="tokens / verifier pass (accept len)" tone="green" />
               <Stat num="O(1)" label="Raven routing memory" tone="blue" />
             </div>
             <Pipeline
@@ -211,6 +215,16 @@ pub trait SpeculativeVerifier: Send + Sync {
               These three traits are the seams of the whole system. Everything downstream — pruners,
               verifiers, bandits — plugs in here.
             </p>
+            <h3>Mixture of Activations (Plan 158)</h3>
+            <p>
+              The FFN's fixed activation is the cheapest place to buy expressivity. <strong>MoA</strong>{' '}
+              replaces the single ReLU/SiLU with a token-adaptive blend over a 7-activation
+              dictionary — a sigmoid gate <code className="inline">π_k = σ(u_kᵀx)</code> picks each
+              token's mix. It is provably more expressive than any fixed activation
+              (<code className="inline">fixed ⊊ LA ⊊ MoA</code>), costs O(28·d) vs O(d²) for the
+              matmul, and folds into the fused kernel <code className="inline">simd_matmul_rmsnorm_moa_swiglu</code>.
+            </p>
+            <MoaMixerDemo />
           </Section>
 
           {/* 5 ---------------------------------------------------- */}
@@ -297,10 +311,13 @@ Path-Aware:  100 nodes, 100 accumulated-valid (100.0%)`}</Code>
           >
             <QuantizationDemo />
             <p>
-              The default codec is <strong>Hybrid OCT+PQ</strong> — OCTOPUS triplet encoding plus a
-              PlanarQuant 2D Givens rotation, with 64× fewer rotation FMAs than pure OCTOPUS.{' '}
-              <strong>SpectralQuant</strong> (default-on) wins on calibrated quality via eigenbasis
-              calibration and water-fill bit allocation. TurboQuant remains as a documented baseline.
+              The default codec — and the winner — is <strong>Hybrid OCT+PQ</strong>: OCTOPUS triplet
+              encoding plus a PlanarQuant 2D Givens rotation. It posts the best MSE at every bit width
+              (≈ pure OCTOPUS, slightly better) while using <strong>64× fewer rotation FMAs</strong>{' '}
+              (256 vs 16,384). Strikingly, the data-oblivious OCTOPUS core beats <strong>SpectralQuant</strong>'s
+              calibrated eigenbasis at every bit width on synthetic data (−22% to −49% MSE) — though
+              SpectralQuant's calibration may narrow that gap on real activations with strong
+              eigenvalue decay. TurboQuant is the demoted legacy baseline.
             </p>
           </Section>
 
@@ -368,25 +385,34 @@ Path-Aware:  100 nodes, 100 accumulated-valid (100.0%)`}</Code>
           {/* 13 --------------------------------------------------- */}
           <Section
             id="benchmarks" num={13} title="Benchmark Results"
-            intro="Apple Silicon, single-threaded, --release, 50k iterations, zero-alloc hot paths."
+            intro="Apple Silicon, single-threaded, --release, 2000 iterations + 50 warmup, zero-alloc hot paths. Latest run: 2026-05-29, default features."
           >
-            <DataTable
-              head={['Method', 'Throughput', 'µs/step', 'Avg Accept Len']}
-              rows={[
-                ['Transformer AR', '900,464 tok/s', '1.11', '1.00'],
-                ['DFlash', '4,231,267 tok/s', '1.89', '8.00'],
-                ['Speculative (Simulated)', '1,143,669 tok/s', '4.37', '5.00'],
-                ['Speculative (AR Draft)', '1,643,545 tok/s', '4.26', '7.00'],
-                ['Leviathan (Algorithm 1)', '114,387 tok/s', '10.31', '1.18'],
-                ['Prefill (no compress)', '19,425,142 tok/s', '3.29', '64.00'],
-                ['forward_raven (16 slots)', '1,617,183 trees/s', '0.62', '—'],
-                ['raven_recall (1000 noise)', '9,252,063 tok/s', '0.11', '63.21'],
+            <h3>Effective decode throughput (tok/s = steps/s × accept length)</h3>
+            <BarChart
+              data={[
+                { label: 'Speculative (AR Draft)', value: 8008721, unit: 'tok/s', tag: '1.14M steps × 7.0' },
+                { label: 'Spec (conditioned)', value: 6302738, unit: 'tok/s', tag: '934K steps × 6.75' },
+                { label: 'Speculative (Simulated)', value: 4271405, unit: 'tok/s', tag: '854K steps × 5.0' },
+                { label: 'DFlash', value: 3387168, unit: 'tok/s', tag: '423K steps × 8.0' },
+                { label: 'Transformer AR', value: 1711230, unit: 'tok/s', tag: '1.71M steps × 1.0' },
+                { label: 'Leviathan (Alg 1)', value: 1630214, unit: 'tok/s', tag: '1.63M steps × 1.0' },
               ]}
             />
-            <p>
-              <span className="kicker">📈 Best speedup: 1.82×</span> (Speculative AR Draft vs plain
-              autoregressive).
-            </p>
+            <h3>Recurrent attention (ops/s — different unit)</h3>
+            <div className="grid-2">
+              <Stat num="2.02M" label="forward_raven (16 slots) ops/s — 0.49 µs" />
+              <Stat num="22.9M" label="raven_recall ops/s — passkey after 1000 noise, 63.21" tone="blue" />
+            </div>
+            <Card title="Reading the gain honestly">
+              The benchmark harness reports <code className="inline">throughput</code> as{' '}
+              <em>verification steps per second</em> (<code className="inline">iters / elapsed</code>) —
+              not tokens. Plain AR emits one token per step, so its steps/s and tok/s coincide
+              (1.71M). But each speculative step emits multiple accepted tokens, so real decode
+              throughput is <span className="kicker">steps/s × avg accept length</span>. Once you
+              multiply through, every speculative method beats AR: DFlash drafts 8 tokens/step
+              (3.39M tok/s), AR-draft accepts 7.0 (8.0M tok/s). The earlier chart plotted the raw
+              steps/s column under a "tok/s" label, which is why AR looked fastest — it wasn't.
+            </Card>
           </Section>
 
           {/* 14 --------------------------------------------------- */}
@@ -403,6 +429,9 @@ Path-Aware:  100 nodes, 100 accumulated-valid (100.0%)`}</Code>
                 ['Hybrid OCT+PQ', <Badge kind="goat">GOAT</Badge>, 'Default KV codec, 64× fewer rotation FMAs.'],
                 ['GDN2', <Badge kind="goat">GOAT</Badge>, '14/14. Constant per-head state, 87–98% memory savings.'],
                 ['Bandit + HL', <Badge kind="goat">GOAT</Badge>, '+37.5pp survival; pipeline at 1.16M cycles/sec.'],
+                ['PlasmaPath', <Badge kind="goat">GOAT</Badge>, '5/5. Ternary {−1,0,+1} at 1.58 bits/weight → 20× less memory traffic (0.70× FP32 NEON speed — a memory win, not a compute win).'],
+                ['Sigmoid Margin', <Badge kind="goat">GOAT</Badge>, '7/7. Optimal retrieval margin at d=Θ(k·log n); sigmoid reaches it at d≈log n vs InfoNCE Θ(n^⅓). No MaxSim regression.'],
+                ['MoA Inference', <Badge kind="goat">GOAT</Badge>, '10/10. Token-adaptive SwiGLU; expressivity fixed⊊LA⊊MoA; O(28d)≪O(d²), 1.03–1.13× wall-clock.'],
                 ['G-Zero self-play', <Badge kind="gated">gated</Badge>, '8.57M δ/sec; bench-only, never touches forward().'],
                 ['Percepta transformer-VM', <Badge kind="gated">gated</Badge>, 'Full RIIR: CHT hull O(log h), WASM interpreter, MILP.'],
                 ['TurboQuant', <Badge kind="dead">legacy</Badge>, 'Demoted — SpectralQuant / OCTOPUS dominate.'],
@@ -415,6 +444,32 @@ Path-Aware:  100 nodes, 100 accumulated-valid (100.0%)`}</Code>
               <Badge kind="gated">gated</Badge> = opt-in, proven ·{' '}
               <Badge kind="dead">legacy / no gain</Badge> = kept for comparison or honestly retired.
             </p>
+
+            <h3>Newest GOAT picks (Plans 148–158)</h3>
+            <div className="grid-3">
+              <Card title="PlasmaPath · Bench 044">
+                Ternary weights {'{−1,0,+1}'} at <strong>1.58 bits/weight</strong>, branchless SIMD
+                add/sub — no multiply. SIMD↔scalar checksum {'<'} 0.1‰. <strong>Honest:</strong> at
+                7.57 Gop/s it is 0.70× of FP32 NEON — the win is <strong>20× less memory traffic</strong>,
+                not raw speed. <span className="kicker">5/5</span>.
+              </Card>
+              <Card title="Sigmoid Margin · Bench 048">
+                Proves optimal retrieval margin needs only <code className="inline">d = Θ(k·log n)</code>{' '}
+                (tight). SigLIP sigmoid loss reaches positive margin at d≈log n vs InfoNCE's Θ(n^⅓)
+                (k=2: d≈6→9 vs 10→23). No MaxSim regression. <span className="kicker">7/7</span>.
+              </Card>
+              <Card title="MoA Inference · Bench 049">
+                Token-adaptive bi-MoA SwiGLU (try the mixer in chapter 04). Expressivity hierarchy
+                <code className="inline"> fixed ⊊ LA ⊊ MoA</code>, sigmoid gate {'>'} softmax,
+                1.03–1.13× wall-clock, memory unchanged. <span className="kicker">10/10</span>.
+              </Card>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--faint)' }}>
+              Each traces research → code → proof: a <code className="inline">.research/</code> paper
+              summary, an implementation under a feature gate, and a <code className="inline">.benchmarks/</code>{' '}
+              GOAT certificate. The MoA proof also caught a sign error in its own test reference —
+              fixed, not papered over.
+            </p>
           </Section>
 
           {/* 15 --------------------------------------------------- */}
@@ -422,20 +477,7 @@ Path-Aware:  100 nodes, 100 accumulated-valid (100.0%)`}</Code>
             id="together" num={15} title="Putting It All Together"
             intro="A single token's journey through the whole machine."
           >
-            <Pipeline
-              steps={[
-                { label: 'text' },
-                { label: 'BPE tokens' },
-                { label: 'embeddings' },
-                { label: 'RMSNorm + attention + MLP' },
-                { label: 'logits' },
-                { label: 'DDTree draft', accent: true },
-                { label: 'ConstraintPruner', accent: true },
-                { label: 'Leviathan verify', accent: true },
-                { label: 'bandit feedback' },
-                { label: 'next token' },
-              ]}
-            />
+            <ArchitectureDemo />
             <p>
               Text becomes tokens. Tokens become vectors. The vectors move through a single
               transformer layer — but every step is shadowed by a draft tree, screened by a rules
@@ -448,6 +490,32 @@ Path-Aware:  100 nodes, 100 accumulated-valid (100.0%)`}</Code>
               <Stat num="3.6M" label="tok/s on Apple M-series" tone="green" />
               <Stat num="100%" label="invalid branches pruned (Sudoku)" tone="blue" />
             </div>
+          </Section>
+
+          {/* 16 --------------------------------------------------- */}
+          <Section
+            id="percepta" num={16} title="Percepta — A Transformer That Executes Programs"
+            intro="Going further: the same machinery that decodes language can be compiled into a CPU. Percepta's transformer-vm, reimplemented in pure Rust, runs a transformer as a program interpreter — with O(log N) attention."
+          >
+            <PerceptaVMDemo />
+            <p>
+              The build phase happens once: gate primitives (ReGLU, persist) form a computation
+              graph, a MILP scheduler packs them into the fewest layers (minimizing{' '}
+              <code className="inline">d_model</code>), and the graph compiles down to transformer
+              weights. At inference, a C or Rust program lowers to WASM bytecode — one byte per token —
+              and the transformer executes it step by step, with the <strong>HullKVCache</strong>{' '}
+              replacing brute-force attention by O(log N) convex-hull queries.
+            </p>
+            <div className="grid-3">
+              <Stat num="O(log N)" label="hull attention vs brute O(N)" tone="green" />
+              <Stat num="d = 2" label="attention head → 2D geometric projection" tone="blue" />
+              <Stat num="1 byte" label="= 1 token of machine state" />
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--faint)' }}>
+              This is the bridge between a language model and a verifier: encode rules as 2D keys and
+              the transformer can <em>check</em> as well as generate. The Sudoku head-to-head lives in{' '}
+              <code className="inline">examples/sudoku_04_percepta_vs.rs</code>.
+            </p>
           </Section>
 
           <div className="footer">

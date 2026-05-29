@@ -345,7 +345,7 @@ button.btn.ghost:hover { color: var(--text); border-color: var(--rust); }
 .probrow { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
 .probrow .lab { font-family: var(--mono); width: 28px; text-align: right; color: var(--muted); font-size: 13px; }
 .probrow .track { flex: 1; height: 18px; background: var(--panel-2); border-radius: 5px; overflow: hidden; }
-.probrow .fill { height: 100%; background: linear-gradient(90deg, var(--rust), var(--rust-bright)); border-radius: 5px; transition: width 0.15s; }
+.probrow .fill { display: block; height: 100%; min-width: 2px; background: linear-gradient(90deg, var(--rust), var(--rust-bright)); border-radius: 5px; transition: width 0.15s; }
 .probrow .pct { font-family: var(--mono); width: 52px; font-size: 12px; color: var(--faint); }
 
 /* slot grid (raven) */
@@ -358,6 +358,121 @@ button.btn.ghost:hover { color: var(--text); border-color: var(--rust); }
 }
 .slot.active { background: var(--rust); color: #14110c; border-color: var(--rust-bright); }
 .slot.frozen { opacity: 0.4; }
+
+/* ---------- Bar chart ---------- */
+.barchart { margin: 22px 0; display: flex; flex-direction: column; gap: 10px; }
+.bc-row { display: grid; grid-template-columns: 180px 1fr 150px 150px; align-items: center; gap: 14px; }
+.bc-label { font-size: 14px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bc-track { background: var(--panel-2); border-radius: 6px; height: 26px; overflow: hidden; }
+.bc-fill {
+  height: 100%;
+  background: var(--rust);
+  border-radius: 6px;
+  min-width: 3px;
+  transition: width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.bc-fill.bc-win { background: var(--green); }
+.bc-tag {
+  font-family: var(--mono); font-size: 11px; color: var(--faint);
+  white-space: nowrap; text-align: right;
+}
+.bc-value { font-family: var(--mono); font-size: 14px; color: var(--text); text-align: right; }
+.bc-value .bc-unit { color: var(--faint); font-size: 12px; }
+@media (max-width: 720px) {
+  .bc-row { grid-template-columns: 110px 1fr 96px; gap: 8px; }
+  .bc-label { font-size: 12px; }
+  .bc-tag { display: none; }
+}
+
+/* ── Architecture walkthrough ─────────────────────────────── */
+.arch {
+  display: grid; grid-template-columns: 340px 1fr; gap: 26px;
+  align-items: start; margin: 22px 0;
+}
+.arch-flow { width: 340px; height: auto; }
+.arch-panel {
+  position: sticky; top: 90px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 14px; padding: 22px 24px;
+}
+.ap-kicker {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em;
+  color: var(--faint); text-transform: uppercase; margin-bottom: 8px;
+}
+.arch-panel h4 { font-size: 22px; margin: 0 0 4px; line-height: 1.2; }
+.ap-role { font-size: 15px; color: var(--muted); margin-bottom: 12px; }
+.ap-shape {
+  display: inline-block; font-family: var(--mono); font-size: 12px;
+  color: var(--text); background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 3px 9px; margin-bottom: 14px;
+}
+.arch-panel p { font-size: 14.5px; line-height: 1.65; color: var(--text); margin: 0; }
+.ap-note {
+  margin-top: 16px; padding: 10px 14px; border-radius: 8px;
+  background: rgba(182,146,246,0.12); border: 1px solid rgba(182,146,246,0.3);
+  font-size: 13px; color: var(--violet);
+}
+@media (max-width: 760px) {
+  .arch { grid-template-columns: 1fr; gap: 18px; }
+  .arch-flow { width: 100%; max-width: 340px; margin: 0 auto; }
+  .arch-panel { position: static; }
+}
+
+/* ── Percepta transformer-VM flow ─────────────────────────── */
+.pvm-kicker {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;
+  color: var(--muted); text-transform: uppercase; margin-bottom: 10px;
+}
+.pvm-kicker-2 { margin-top: 14px; }
+.pvm-kicker span { color: var(--faint); text-transform: none; letter-spacing: 0; }
+/* shared 5-column grid so BUILD and RUN rows align column-for-column.
+   RUN is shifted one column right → its 3rd box (Transformer) sits under
+   BUILD's 4th box (Compile → weights), with the down-arrow between them. */
+.pvm-grid {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 4px; align-items: stretch;
+}
+.pvm-run > .pvm-cell:first-child { grid-column-start: 2; }
+.pvm-cell { display: flex; align-items: stretch; }
+.pvm-node {
+  flex: 1; display: flex; flex-direction: column; justify-content: center;
+  text-align: left; cursor: pointer; font-family: inherit;
+  background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 9px 13px; min-height: 44px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.pvm-node:hover { border-color: var(--muted); }
+.pvm-node.hot { background: rgba(95,211,141,0.14); border-color: var(--green); }
+.pvm-node.sel { border-color: var(--rust-bright); box-shadow: 0 0 0 1px var(--rust-bright); }
+.pvm-node.hot.sel { border-color: var(--green); box-shadow: 0 0 0 1px var(--green); }
+.pvm-label { font-size: 13px; color: var(--text); font-weight: 600; }
+.pvm-node.hot .pvm-label { color: var(--green); }
+.pvm-sub { font-family: var(--mono); font-size: 10px; color: var(--faint); margin-top: 2px; }
+.pvm-arrow { display: flex; align-items: center; color: var(--faint); padding: 0 4px; }
+.pvm-down { margin: 6px 0; align-items: center; }
+.pvm-down-label {
+  grid-column: 1 / 4; justify-self: end; align-self: center;
+  font-size: 12px; color: var(--faint); font-style: italic;
+}
+.pvm-down-arrow {
+  grid-column: 4; justify-self: center;
+  color: var(--rust-bright); font-size: 20px; line-height: 1;
+}
+.pvm-detail {
+  margin-top: 16px; padding: 14px 18px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+}
+.pvm-detail-label { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.pvm-detail p { font-size: 13.5px; line-height: 1.6; color: var(--muted); margin: 0; }
+@media (max-width: 720px) {
+  .pvm-grid { grid-template-columns: 1fr; }
+  .pvm-run > .pvm-cell:first-child { grid-column-start: auto; }
+  .pvm-cell { flex-direction: column; align-items: stretch; }
+  .pvm-arrow { transform: rotate(90deg); align-self: center; padding: 2px 0; }
+  .pvm-down-label { grid-column: 1; justify-self: start; }
+  .pvm-down-arrow { grid-column: 1; justify-self: start; }
+}
 
 .footer {
   text-align: center; color: var(--faint); font-size: 13px;

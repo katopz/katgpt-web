@@ -57,3 +57,29 @@ export function DataTable({ head, rows }) {
 export function Badge({ kind, children }) {
   return <span className={`badge ${kind}`}>{children}</span>
 }
+
+// Horizontal bar chart for throughput-style data.
+// data: [{ label, value, unit, tag }] — bars scale to the max value.
+export function BarChart({ data, format = (v) => v.toLocaleString() }) {
+  const max = Math.max(...data.map((d) => d.value))
+  return (
+    <div className="barchart">
+      {data.map((d, i) => (
+        <div className="bc-row" key={i}>
+          <div className="bc-label">{d.label}</div>
+          <div className="bc-track">
+            <div
+              className={`bc-fill ${d.value === max ? 'bc-win' : ''}`}
+              style={{ width: `${(d.value / max) * 100}%` }}
+            />
+          </div>
+          <div className="bc-tag">{d.tag}</div>
+          <div className="bc-value">
+            {format(d.value)}
+            {d.unit && <span className="bc-unit"> {d.unit}</span>}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
