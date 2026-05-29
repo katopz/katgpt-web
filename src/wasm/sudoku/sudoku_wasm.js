@@ -1,26 +1,47 @@
 /* @ts-self-types="./sudoku_wasm.d.ts" */
 
 /**
+ * Pure solve — no event emission — returning the step count. The active hull
+ * (None / Mono / CHT) is maintained, so timing this call reflects the real
+ * solve + attention-cache cost. Used by the web layer for the time chart.
+ * @param {string} puzzle
+ * @param {string} mode
+ * @returns {number}
+ */
+export function count_steps(puzzle, mode) {
+    const ptr0 = passStringToWasm0(puzzle, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(mode, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.count_steps(ptr0, len0, ptr1, len1);
+    return ret >>> 0;
+}
+
+/**
  * Solve a puzzle and return the full trace + stats as JSON.
  *
  * `puzzle`: 81-char board ('0'/'.' = empty), or `"arto"` / `""` shortcuts.
+ * `mode`: engine id — `"brute"` | `"fc"` | `"port"` | `"opt"`.
  * `max_events`: cap on emitted events (the trace can be long; stats stay exact).
  * @param {string} puzzle
+ * @param {string} mode
  * @param {number} max_events
  * @returns {string}
  */
-export function solve(puzzle, max_events) {
-    let deferred2_0;
-    let deferred2_1;
+export function solve(puzzle, mode, max_events) {
+    let deferred3_0;
+    let deferred3_1;
     try {
         const ptr0 = passStringToWasm0(puzzle, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.solve(ptr0, len0, max_events);
-        deferred2_0 = ret[0];
-        deferred2_1 = ret[1];
+        const ptr1 = passStringToWasm0(mode, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.solve(ptr0, len0, ptr1, len1, max_events);
+        deferred3_0 = ret[0];
+        deferred3_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
-        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
     }
 }
 function __wbg_get_imports() {
