@@ -1,0 +1,20 @@
+{
+  "name": "katgpt-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "The Anatomy of KatGPT-RS — an interactive walkthrough of a neuro-symbolic micro-Transformer in Rust.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.7"
+  }
+}
