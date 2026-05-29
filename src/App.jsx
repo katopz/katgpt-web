@@ -551,7 +551,7 @@ Path-Aware:  100 nodes, 100 accumulated-valid (100.0%)`}</Code>
           {/* 17 --------------------------------------------------- */}
           <Section
             id="sudoku" num={17} title="Watch It Solve — Live in Your Browser"
-            intro="The real Rust solver, compiled to WebAssembly and running right here. Same engine as examples/sudoku_04_percepta_vs.rs — a backtracking solver whose execution trace feeds the O(log N) convex-hull cache. Pick an engine and watch it think."
+            intro="The real Rust solver compiled to WebAssembly, running right here on Arto Inkala — the world's hardest Sudoku (21 clues). Four engines: plain backtracking, forward-checked pruning, a faithful port of Percepta's CHT attention (hull2d_cht.h), and an optimized version using every trick. Watch each think — and compare how fast they solve the hardest puzzle there is."
           >
             <SudokuDemo />
           </Section>

@@ -1119,10 +1119,16 @@ export function PerceptaVMDemo() {
 // Powered by crates/sudoku-wasm (port of src/percepta/legacy.rs).
 // ============================================================
 const SUDOKU_ENGINES = [
-  { id: '9x9', label: '9×9' },
-  { id: 'spec', label: 'Speculative' },
-  { id: 'percepta', label: 'Percepta' },
+  { id: '9x9', label: '9×9', mode: 'brute', strat: 'plain backtracking' },
+  { id: 'spec', label: 'Speculative', mode: 'fc', strat: 'forward-checked pruning' },
+  { id: 'port', label: 'Percepta (port)', mode: 'port', strat: 'faithful CHT attention' },
+  { id: 'opt', label: 'Percepta (optimize)', mode: 'opt', strat: 'MRV + monotonic hull' },
 ]
+const MODE_OF = Object.fromEntries(SUDOKU_ENGINES.map((e) => [e.id, e.mode]))
+// Arto Inkala — "World's Hardest Sudoku" (21 clues). Genuinely hard, so most
+// engines don't finish on-screen; the live animation shows the opening search
+// while the stats/chart report the full real solve.
+const SUDOKU_PUZZLE = 'arto'
 
 // turn an 81-char string into a 9×9 array of digits (0 = empty)
 function parseGrid(s) {
@@ -1163,6 +1169,7 @@ function fmtEvent(engine, ev, ctx) {
 export function SudokuDemo() {
   const [solveFn, setSolveFn] = useState(null)
   const [data, setData] = useState(null)
+  const [times, setTimes] = useState(null)
   const [engine, setEngine] = useState('9x9')
   const [view, setView] = useState('log')
   const [, setTick] = useState(0)
@@ -1176,11 +1183,34 @@ export function SudokuDemo() {
   const idx = useRef(0)
   const ctx = useRef({})
 
-  // lazy-load the wasm module once
+  // lazy-load the wasm module once, then time each strategy (pure solve,
+  // no trace-building) so the engines are comparable on the same puzzle.
   useEffect(() => {
     let live = true
     import('../wasm/sudoku/sudoku_wasm.js')
-      .then((m) => m.default().then(() => { if (live) setSolveFn(() => m.solve) }))
+      .then((m) => m.default().then(() => {
+        if (!live) return
+        setSolveFn(() => m.solve)
+        // Defer the (blocking) benchmark so first paint isn't held up. Take the
+        // min of a few runs, but cap total time per engine (Arto brute is slow).
+        setTimeout(() => {
+          if (!live) return
+          const t = {}
+          for (const e of SUDOKU_ENGINES) {
+            let best = Infinity, steps = 0, elapsed = 0, runs = 0
+            while (runs < 9 && elapsed < 250) {
+              const t0 = performance.now()
+              steps = m.count_steps(SUDOKU_PUZZLE, e.mode)
+              const dt = performance.now() - t0
+              best = Math.min(best, dt)
+              elapsed += dt
+              runs++
+            }
+            t[e.id] = { steps, ms: best }
+          }
+          setTimes(t)
+        }, 0)
+      }))
       .catch((e) => console.error('sudoku wasm load failed', e))
     return () => { live = false }
   }, [])
@@ -1188,12 +1218,8 @@ export function SudokuDemo() {
   // (re)solve whenever the engine changes
   useEffect(() => {
     if (!solveFn) return
-    const t0 = performance.now()
-    const json = solveFn('percepta', 8000)
-    const ms = performance.now() - t0
+    const json = solveFn(SUDOKU_PUZZLE, MODE_OF[engine], 15000)
     const d = JSON.parse(json)
-    d.solveMs = ms
-    d.stepsPerSec = Math.round(d.steps / (ms / 1000))
     // aggregate counts once (avoids re-filtering 8k events every frame)
     let tries = 0, pruned = 0, placed = 0
     for (const e of d.events) {
@@ -1215,10 +1241,11 @@ export function SudokuDemo() {
     setTick((t) => t + 1)
   }, [solveFn, engine])
 
-  // playback loop — reveal a chunk of events per frame
+  // playback loop — reveal a chunk of events per frame.
+  // Adaptive pace: play the whole (capped) trace in ~12s regardless of size.
   useEffect(() => {
     if (!data || done) return
-    const CHUNK = engine === '9x9' ? 5 : 6
+    const CHUNK = Math.max(2, Math.ceil(data.events.length / 220))
     const id = setInterval(() => {
       const evs = data.events
       let n = 0
@@ -1231,7 +1258,12 @@ export function SudokuDemo() {
         if (line) { log.current.push(line); if (log.current.length > 200) log.current.shift() }
         n++
       }
-      if (idx.current >= evs.length) setDone(true)
+      if (idx.current >= evs.length) {
+        // End of the (possibly capped) trace: snap to the real solution so the
+        // final frame shows the answer, not a deep tentative search state.
+        if (data.answer) grid.current = parseGrid(data.answer)
+        setDone(true)
+      }
       setTick((t) => t + 1)
     }, 55)
     return () => clearInterval(id)
@@ -1249,14 +1281,21 @@ export function SudokuDemo() {
     setTick((t) => t + 1)
   }
 
-  // stat line per engine
+  // unified, comparable stat line + engine-specific signature
+  const fmtMs = (ms) => (ms < 1 ? ms.toFixed(2) : ms.toFixed(1))
   const statLine = () => {
     if (!data) return ''
-    if (engine === 'percepta')
-      return `${data.trace.toLocaleString()} trace → ${data.hull} hull (${Math.round(data.trace / Math.max(data.hull, 1))}× · O(log n)) · ${data.stepsPerSec.toLocaleString()} steps/s`
+    const tm = times?.[engine]
+    const base = tm
+      ? `${data.steps.toLocaleString()} steps · ${fmtMs(tm.ms)} ms`
+      : `${data.steps.toLocaleString()} steps`
+    if (engine === 'port')
+      return `${base} · faithful CHT attention · trace ${data.trace.toLocaleString()} → hull ${data.hull}`
+    if (engine === 'opt')
+      return `${base} · MRV + monotonic hull · trace ${data.trace.toLocaleString()} → hull ${data.hull}`
     if (engine === 'spec')
-      return `${data.tries.toLocaleString()} drafted · ${data.pruned.toLocaleString()} pruned (${Math.round((data.pruned / Math.max(data.tries, 1)) * 100)}%) · ${data.placed.toLocaleString()} placed`
-    return `${data.steps.toLocaleString()} steps · ${data.stepsPerSec.toLocaleString()} steps/s · solved in ${data.solveMs.toFixed(2)} ms`
+      return `${base} · ${data.pruned.toLocaleString()} candidates pruned`
+    return `${base} · plain backtracking`
   }
 
   const tokens = trace.current.slice(-120)
@@ -1294,6 +1333,12 @@ export function SudokuDemo() {
                 : <div className="sk-trace">{tokens.map((t, i) =>
                     <span key={i} className={t < 0 ? 'tk back' : 'tk'}>{t < 0 ? '↩' : t}</span>)}</div>}
               {!done && <span className="sk-caret" />}
+              {done && data?.capped && (
+                <div className="sk-status">
+                  ▸ solved in {data.steps.toLocaleString()} steps — board shows the answer
+                  (live view truncated at {data.events.length.toLocaleString()} search events)
+                </div>
+              )}
             </div>
             <div className="sk-subtabs">
               <button type="button" className={view === 'log' ? 'on' : ''} onClick={() => setView('log')}>Readable log</button>
@@ -1311,12 +1356,61 @@ export function SudokuDemo() {
           )))}
         </div>
       </div>
+
+      {times && (() => {
+        const maxMs = Math.max(...SUDOKU_ENGINES.map((e) => times[e.id].ms))
+        const fastest = SUDOKU_ENGINES.reduce((a, b) => (times[a.id].ms <= times[b.id].ms ? a : b)).id
+        const baseMs = times['port'].ms // baseline = faithful Percepta port
+        const rel = (id, ms) => {
+          if (id === 'port') return 'Percepta baseline'
+          const r = baseMs / ms
+          if (r >= 1.05) return `${r.toFixed(1)}× faster than port`
+          if (r <= 0.95) return `${(1 / r).toFixed(1)}× slower than port`
+          return '≈ port'
+        }
+        return (
+          <div className="sk-compare">
+            <div className="sk-compare-title">
+              Solve time — Arto Inkala (world's hardest), four engines <span>(full solve, vs Percepta port; lower is faster)</span>
+            </div>
+            <div className="sk-headline">
+              Our <strong>Percepta (optimize)</strong> solves it{' '}
+              <strong>{(times['port'].ms / times['opt'].ms).toFixed(1)}× faster</strong> than the faithful{' '}
+              <strong>Percepta (port)</strong> — same answer, every Rust trick allowed.
+            </div>
+            {SUDOKU_ENGINES.map((e) => {
+              const tm = times[e.id]
+              const win = e.id === fastest
+              return (
+                <div className="sk-cmp-row" key={e.id}>
+                  <div className="sk-cmp-label">{e.label} <span>{e.strat}</span></div>
+                  <div className="sk-cmp-track">
+                    <div className={`sk-cmp-fill ${win ? 'win' : ''}`} style={{ width: `${Math.max((tm.ms / maxMs) * 100, 1.5)}%` }} />
+                  </div>
+                  <div className="sk-cmp-val">
+                    <div>{fmtMs(tm.ms)} ms · {tm.steps.toLocaleString()} steps</div>
+                    <div className={`sk-cmp-x ${e.id === fastest ? 'win' : ''}`}>{rel(e.id, tm.ms)}</div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )
+      })()}
+
       <p style={{ fontSize: 12.5, color: 'var(--faint)', marginTop: 14, marginBottom: 0 }}>
-        All three tabs run the same real solver from <code className="inline">crates/sudoku-wasm</code>{' '}
-        (a port of <code className="inline">src/percepta/legacy.rs</code>), compiled to WebAssembly —
-        the trace is computed live, not recorded. <strong>9×9</strong> shows the raw backtracking log;{' '}
-        <strong>Speculative</strong> reframes each cell's digit trials as draft → prune → verify;{' '}
-        <strong>Percepta</strong> reports the execution trace compressed by the O(log n) convex hull.
+        Four engines, same puzzle, all live in WebAssembly. <strong>9×9</strong> is plain backtracking;{' '}
+        <strong>Speculative</strong> adds forward-checking (abandon a branch the moment any cell has zero
+        candidates). <strong>Percepta (port)</strong> records every step into a{' '}
+        <em>faithful CHT HardAttentionHead</em> — a direct port of Percepta's{' '}
+        <code className="inline">hull2d_cht.h</code> (the real O(log N) attention), on a plain
+        backtracking trace like the original transformer-vm executes.{' '}
+        <strong>Percepta (optimize)</strong> is the RIIR win — every trick allowed: most-constrained-cell
+        ordering collapses the search tree (≈49.6k → ≈13.8k steps on Arto) and a monotonic-X Graham hull
+        replaces the general CHT (amortized O(1) insert). Note the port and optimize use different
+        strategies on purpose — “as faithful as possible” vs “as fast as possible.” The puzzle is Arto
+        Inkala, the world's hardest (21 clues), so the live board shows the opening search rather than a
+        full finish; the chart reports the complete solve.
       </p>
     </Widget>
   )
