@@ -1,0 +1,11 @@
+# Rust workspace for the demo's WebAssembly solver.
+# Two members: `sudoku-core` (pure logic, testable natively) and `sudoku-wasm`
+# (thin wasm-bindgen bindings over it). Kept separate from the katgpt-rs
+# workspace so the web repo builds standalone (GitHub Pages CI).
+[workspace]
+resolver = "2"
+members = ["crates/sudoku-core", "crates/sudoku-wasm"]
+
+[profile.release]
+opt-level = "z"
+lto = true

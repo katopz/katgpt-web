@@ -1,0 +1,12 @@
+# Pure, zero-dependency Sudoku solver core — shared by the wasm bindings
+# (crates/sudoku-wasm). Compiles to any target, including wasm32, because it
+# pulls in nothing (no rayon, threads, or clock). Member of the katgpt-web
+# workspace (see ../../Cargo.toml).
+[package]
+name = "sudoku-core"
+version = "0.1.0"
+edition = "2021"
+description = "Pure-Rust Sudoku backtracking solver with pluggable search strategies and 2D hull attention caches. No dependencies; wasm-friendly."
+license = "MIT"
+
+[dependencies]
