@@ -37,8 +37,8 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            crates/sudoku-wasm/target
-          key: cargo-${{ hashFiles('crates/sudoku-wasm/Cargo.toml', 'crates/sudoku-wasm/src/**') }}
+            target
+          key: cargo-${{ hashFiles('Cargo.lock', 'crates/**/Cargo.toml', 'crates/**/src/**') }}
 
       # ── Node / Vite ──
       - uses: actions/setup-node@v4

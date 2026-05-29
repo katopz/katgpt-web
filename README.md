@@ -88,6 +88,12 @@ src/
     widgets.jsx           # interactive demos (DDTree, MoA mixer, Architecture, Percepta VM, Sudoku)
   wasm/sudoku/            # prebuilt wasm-pack output (committed)
   styles.css
-crates/sudoku-wasm/       # Rust solver → WASM (port of katgpt-rs src/percepta/legacy.rs)
+Cargo.toml                # Rust workspace (sudoku-core + sudoku-wasm)
+crates/
+  sudoku-core/            # pure solver: backtracking + forward-checking + MRV,
+                          #   CHT (port) and monotonic (optimize) hulls. Native tests.
+  sudoku-wasm/            # thin wasm-bindgen bindings over sudoku-core
 .github/workflows/deploy.yml
 ```
+
+Run the core's native tests with `cargo test -p sudoku-core`.
