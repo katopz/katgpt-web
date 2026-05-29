@@ -1116,7 +1116,7 @@ export function PerceptaVMDemo() {
 
 // ============================================================
 // Sudoku — live in-browser WASM solver (3 engines, log + trace)
-// Powered by crates/sudoku-wasm (port of src/percepta/legacy.rs).
+// Powered by crates/sudoku-core (pure solver) via crates/sudoku-wasm bindings.
 // ============================================================
 const SUDOKU_ENGINES = [
   { id: '9x9', label: '9×9', mode: 'brute', strat: 'plain backtracking' },
@@ -1410,7 +1410,8 @@ export function SudokuDemo() {
         replaces the general CHT (amortized O(1) insert). Note the port and optimize use different
         strategies on purpose — “as faithful as possible” vs “as fast as possible.” The puzzle is Arto
         Inkala, the world's hardest (21 clues), so the live board shows the opening search rather than a
-        full finish; the chart reports the complete solve.
+        full finish; the chart reports the complete solve. All four run from{' '}
+        <code className="inline">crates/sudoku-core</code> (pure Rust, natively tested) compiled to WebAssembly.
       </p>
     </Widget>
   )

@@ -2,18 +2,16 @@
 /* eslint-disable */
 
 /**
- * Pure solve — no event emission — returning the step count. The active hull
- * (None / Mono / CHT) is maintained, so timing this call reflects the real
- * solve + attention-cache cost. Used by the web layer for the time chart.
+ * Pure solve — no trace emitted — returning the step count, for timing.
  */
 export function count_steps(puzzle: string, mode: string): number;
 
 /**
- * Solve a puzzle and return the full trace + stats as JSON.
+ * Solve a puzzle and return the full trace + stats + solution as JSON.
  *
  * `puzzle`: 81-char board ('0'/'.' = empty), or `"arto"` / `""` shortcuts.
  * `mode`: engine id — `"brute"` | `"fc"` | `"port"` | `"opt"`.
- * `max_events`: cap on emitted events (the trace can be long; stats stay exact).
+ * `max_events`: cap on emitted trace events (stats stay exact past the cap).
  */
 export function solve(puzzle: string, mode: string, max_events: number): string;
 
