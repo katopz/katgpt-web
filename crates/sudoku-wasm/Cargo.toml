@@ -1,3 +1,8 @@
+# Standalone workspace root — keeps this crate independent of any parent Cargo
+# workspace (e.g. katgpt-rs) so its [profile] is valid and tooling treats it
+# as its own project rather than an orphaned member.
+[workspace]
+
 [package]
 name = "sudoku-wasm"
 version = "0.1.0"
