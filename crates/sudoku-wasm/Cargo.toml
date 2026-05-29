@@ -1,13 +1,11 @@
-# Standalone workspace root — keeps this crate independent of any parent Cargo
-# workspace (e.g. katgpt-rs) so its [profile] is valid and tooling treats it
-# as its own project rather than an orphaned member.
-[workspace]
-
+# WebAssembly bindings over `sudoku-core`. This crate is nothing but the
+# wasm-bindgen surface; all solver logic lives in sudoku-core (testable
+# natively). Member of the katgpt-web workspace (see ../../Cargo.toml).
 [package]
 name = "sudoku-wasm"
 version = "0.1.0"
 edition = "2021"
-description = "Pure-Rust Sudoku hull-backtracking solver, compiled to WASM for the KatGPT-RS web demo. Ported from katgpt-rs src/percepta/legacy.rs."
+description = "wasm-bindgen bindings over sudoku-core for the KatGPT-RS web demo."
 license = "MIT"
 
 [lib]
@@ -15,7 +13,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 wasm-bindgen = "=0.2.120"
-
-[profile.release]
-opt-level = "z"
-lto = true
+sudoku-core = { path = "../sudoku-core" }
