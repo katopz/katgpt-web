@@ -1,5 +1,7 @@
 # The Anatomy of KatGPT-RS
 
+> **Boundary contract:** [BOUNDARY.md](BOUNDARY.md) — what lives here, what may depend on it, known drift.
+
 An interactive, single-page walkthrough of [KatGPT-RS](https://github.com/katopz/katgpt-rs) —
 a neuro-symbolic micro-Transformer in Rust. Built with **React + Vite**, structured after
 Roy van Rijn's [Anatomy of an LLM](https://www.royvanrijn.com/anatomy-of-an-llm/).
