@@ -8,3 +8,4 @@ dist-ssr
 # Rust build artifacts (the wasm-pack output in src/wasm/ is committed)
 /target
 crates/*/target/
+CLAUDE.md
