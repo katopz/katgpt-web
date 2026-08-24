@@ -4,3 +4,6 @@ dist-ssr
 *.local
 .DS_Store
 .vite
+# cargo heal runtime state — self-evolve trajectory store + miss queue
+# (machine-local WAL + key seed, never committed; riir-clippy Issue 037)
+.heal/
