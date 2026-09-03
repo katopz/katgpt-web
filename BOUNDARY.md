@@ -30,8 +30,11 @@ private stack entirely.
 |---|---|
 | The primitives themselves | `../katgpt-rs` (public) |
 | Anything private (game runtime, chain, storage, training) | the private repos — and it must never appear here at all |
-| Game/product UI | `../riir-armageddon`, `../riir-mmorpg-examples` |
-| Editor/engine view layers | `../riir-unity`, `../riir-viewbridge` |
+| Game/product UI | `../riir-mmorpg-examples`, `../seal-remake` |
+| Editor/engine view layers | `../riir-viewbridge`, `../seal-remake` (`crates/seal-view`) |
+
+Retired lineage (narrative, off the routing cells): `riir-armageddon`
+(2026-09-02) and `riir-unity` (2026-09-04) — both under `git/obsolete/`.
 
 ## May depend on
 
