@@ -10,5 +10,6 @@ dist-ssr
 crates/*/target/
 CLAUDE.md
 
-# cargo-heal local runtime state (self-evolve store + miss queue) — same class as riir-clippy
+# cargo heal runtime state — self-evolve trajectory store + miss queue
+# (machine-local WAL + key seed, never committed; riir-clippy Issue 037)
 .heal/
