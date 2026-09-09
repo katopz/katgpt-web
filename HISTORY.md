@@ -26,11 +26,20 @@ Resolution (owner un-gated 2026-09-09: "do manual deploy for now"):
 - Remote created: `github.com/katopz/katgpt-web` (public, ssh) — the
   public web surface of the public `katopz/katgpt-rs` funnel.
 - Deploy is MANUAL until the Actions budget allows the workflow back:
-  `VITE_BASE=/katgpt-web/ npm run build` + `npx gh-pages -d dist`
-  (the README-documented manual path) → Pages serves the `gh-pages`
+  `VITE_BASE=/katgpt-web/ npm run build` → Pages serves the `gh-pages`
   branch; pushes to `main` carry `[skip ci]` so `deploy.yml` does not
   burn minutes (the workflow file is untouched and stays the promoted
-  path for later).
+  path for later). Live: https://katopz.github.io/katgpt-web/
+  (Pages build_type `legacy`, source `gh-pages`, HTTPS enforced).
+- Deploy-chain lesson (found live, first deploy): the npm `gh-pages`
+  tool, creating the branch fresh, CLONES `main` into its cache, cleans
+  only NON-dotfiles, and copies `dist/` in — the cloned branch's
+  dotfiles (`.github/`, `.gitignore`, `.issues/`) survive into the
+  published commit. Working manual chain: temp dir `git init -b
+  gh-pages` + `cp -R dist/. .` + `.nojekyll` + force-push the orphan
+  branch, then `rm -rf node_modules/.cache/gh-pages` so future tool
+  runs clone the clean `gh-pages` branch (its only dotfile is
+  `.nojekyll`, which the survivor bug keeps — harmless).
 - Drift row `002-branch-divergence` removed from `BOUNDARY.md` in the
   same change; issue file removed (this entry is the record).
 
