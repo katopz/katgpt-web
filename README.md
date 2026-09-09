@@ -80,6 +80,12 @@ VITE_BASE=/katgpt-web/ npm run build
 npx gh-pages -d dist        # or push dist/ to a gh-pages branch
 ```
 
+**Current mode (2026-09-09): deploys ARE the manual path** (owner call —
+GitHub Actions free-tier limit). Pages serves the `gh-pages` branch;
+until the Actions lane is re-enabled, pushes to `main` carry `[skip ci]`
+so `deploy.yml` stays dormant. Guard: `main` must never sit behind the
+working branch — the deploy trigger follows `main` (see `AGENTS.md §Branch`).
+
 ## Project layout
 
 ```

@@ -70,3 +70,11 @@ the number, and write the new value back. Same for `.plans/`, `.docs/`,
 `main` is the working branch (no `develop` exists). Note: pushing to `main`
 re-publishes the site via the GitHub Pages workflow — every landing commit is a
 deploy.
+
+**Guard (Issue 002, 2026-09-09): `main` must never sit behind the working
+branch** while `deploy.yml` triggers on it — a push of stale `main` silently
+publishes a stale site. Land directly on `main` (or ff it before pushing).
+Deploy status: MANUAL for now (owner call 2026-09-09 — Actions free-tier
+limit): `VITE_BASE=/katgpt-web/ npm run build` + `npx gh-pages -d dist`,
+Pages serving the `gh-pages` branch; pushes to `main` carry `[skip ci]`
+until the Actions lane is re-enabled (HISTORY.md).

@@ -51,6 +51,5 @@ Retired lineage (narrative, off the routing cells): `riir-armageddon`
 
 | ID | Surface | Target | Actual (verified) | Workaround | Issue | Disposition |
 |----|---------|--------|-------------------|------------|-------|-------------|
-| 002-branch-divergence | git topology vs `AGENTS.md §Branch` + `deploy.yml` | `main` IS the working branch and the Pages deploy source | `feat/percepta-arch-diagrams` is 16 commits ahead; `main` holds one duplicate `.heal/` gitignore commit; checkout has NO remote (deploy can never fire yet) | none — first real deploy must push POST-merge | [002](.issues/002_stale_main_first_pages_deploy.md) | owner-call |
 
-Historical: clean at the 2026-08-21 contract-guard run (zero cross-repo edges — unchanged; this row is git-topology, not a dep edge).
+Historical: clean at the 2026-08-21 contract-guard run (zero cross-repo edges — unchanged). Git-topology rows (not dep edges) live here only while open: `002-branch-divergence` was resolved + removed 2026-09-09 — main merged + pushed as the Pages deploy source (HISTORY.md).
