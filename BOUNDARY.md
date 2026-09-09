@@ -49,4 +49,8 @@ Retired lineage (narrative, off the routing cells): `riir-armageddon`
 
 ## Drift ledger (target vs actual)
 
-None. (Clean at the 2026-08-21 contract-guard run — zero cross-repo edges.)
+| ID | Surface | Target | Actual (verified) | Workaround | Issue | Disposition |
+|----|---------|--------|-------------------|------------|-------|-------------|
+| 002-branch-divergence | git topology vs `AGENTS.md §Branch` + `deploy.yml` | `main` IS the working branch and the Pages deploy source | `feat/percepta-arch-diagrams` is 16 commits ahead; `main` holds one duplicate `.heal/` gitignore commit; checkout has NO remote (deploy can never fire yet) | none — first real deploy must push POST-merge | [002](.issues/002_stale_main_first_pages_deploy.md) | owner-call |
+
+Historical: clean at the 2026-08-21 contract-guard run (zero cross-repo edges — unchanged; this row is git-topology, not a dep edge).
