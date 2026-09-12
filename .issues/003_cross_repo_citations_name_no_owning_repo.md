@@ -1,6 +1,6 @@
 # Issue 003 — cross-repo citations that name no OWNING repo (1 row)
 
-**Status:** OPEN — record filed 2026-09-12 by the katgpt-rs `citation_drift_sweep.py` corpus run (katgpt-rs Issue 751 / Issue 752). No prose in this repo was edited: the repair is this repo's call.
+**Status:** RESOLVED 2026-09-12 — the one row is repaired; this repo's `cross` is **0** and its ceiling in katgpt-rs `scripts/citation_drift_floors.txt` was lowered `1 -> 0` in the same commit (katgpt-rs `5ea1f40a`, Issue 753).
 
 ## The finding class
 
@@ -71,3 +71,37 @@ Workspace standing at filing (2026-09-12, a dated SNAPSHOT and not a checksum �
 - [ ] T1 — read `AGENTS.md:29`, confirm the sentence means katgpt-rs's Research 003, and qualify it (or reword, if it meant a private repo's document — which this repo may not name)
 - [ ] T2 — record the row HERE if judged a sweep false positive, with the reason (that is the data that lowers the 16%)
 - [ ] T3 — re-run the sweep; this repo's CROSS count should reach 0 or the reason recorded in T2
+
+
+## Resolution (2026-09-12)
+
+The ⚠ above is the whole of it: the qualifier is admissible **only** if the
+sentence means katgpt-rs's Research 003. Confirmed on evidence, not permission —
+katgpt-rs's `.research/003_Commercial_Open_Source_Strategy_Verdict.md` is the
+document that *defines the axis this sentence invokes*:
+
+> Let public-research agents self-govern the public/private boundary without
+> needing the sensitive moat doc.
+>
+> The table above is the **public/private** axis.
+
+riir-ai carries a same-titled copy and it **differs** — the private variant,
+inadmissible here regardless of which one was meant. So the referent is
+katgpt-rs's, the citation is qualified rather than the prose reworded, and this
+repo's private-free rule is untouched (katgpt-rs is public, and `AGENTS.md`
+already names `../katgpt-rs/crates/katgpt-core` two lines below).
+
+Applied exactly as the repair block above specifies, rewrapped to the file's
+80-column convention:
+
+```
+- per Research 003's public/private axis, no private `riir-*` repo may ever be
++ per `katgpt-rs` Research 003's public/private axis, no private `riir-*` repo
+```
+
+⚠ One ownership row looked like an instrument bug and was not: seal-game-editor
+is listed among the seven owners while having **no `.research/` directory**. It
+allocated `.research/003_migration_gap_audit.md` and removed it under the
+noise-reduction rule; the sweep's `allocated()` walks `git log --all` precisely
+so a removed-but-allocated number still counts against a citation. Checked
+rather than assumed — the "seven repos" figure above stands.

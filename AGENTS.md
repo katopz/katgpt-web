@@ -26,8 +26,8 @@ artifact committed under `src/wasm/sudoku/` so the site builds without a Rust
 toolchain.
 
 **Public-facing, private-free (non-negotiable).** This repo faces the public —
-per Research 003's public/private axis, no private `riir-*` repo may ever be
-depended on (or named) here. Content explains the public
+per `katgpt-rs` Research 003's public/private axis, no private `riir-*` repo
+may ever be depended on (or named) here. Content explains the public
 `../katgpt-rs/crates/katgpt-core` primitives only. A dep on `katgpt-core` is
 admissible; everything else workspace-internal is not.
 
