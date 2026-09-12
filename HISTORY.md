@@ -3,6 +3,26 @@
 History, resolved-issue records, incident narratives. Removed issue files
 live in git history (workspace noise rule).
 
+## 2026-09-12 — Issue 003 resolved: the bare Research 003 citation rebinds locally
+
+The finding (filed by the katgpt-rs Issue 751 cross-repo citation sweep):
+one citation in this repo's contract documents named a document number not
+allocated locally — bare `Research 003` — while the number is allocated in
+seven sibling repos. The defect is REBINDING, not dangling: the day this
+repo allocates `.research/003`, the sentence silently points at a
+different, locally-real document. And the fuse was the shortest in the
+workspace — this very issue file was the repo's first `003`, so a bare
+`Research 003` was one `.research/` file away from colliding in-repo.
+
+Resolution (`f8bfcde`, resolves the issue; `8e9cb8a` filed it): the
+citation qualified with the OWNING repo's directory name. The private-free
+rule constrained the qualifier — of the seven owners, only katgpt-rs is
+public and nameable here, and katgpt-rs Research 003 is also the document
+that defines the public/private axis the sentence invokes, so the
+qualification is both admissible and correct. This repo's `cross` count is
+**0**; the ceiling in katgpt-rs `scripts/citation_drift_floors.txt` was
+lowered `1 -> 0` in the same commit (katgpt-rs `5ea1f40a`, Issue 753).
+
 ## 2026-09-09 — Issue 002 resolved: stale main absorbed + first real Pages deploy (manual)
 
 The finding: `main` had diverged from the working branch —
