@@ -13,3 +13,6 @@ CLAUDE.md
 # cargo heal runtime state — self-evolve trajectory store + miss queue
 # (machine-local WAL + key seed, never committed; riir-clippy Issue 037)
 .heal/
+
+# cargo-refine machine-local state (trajectories, fixseq, outbox, active-set)
+.refine/
