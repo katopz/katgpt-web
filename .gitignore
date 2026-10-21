@@ -16,3 +16,6 @@ CLAUDE.md
 
 # cargo-refine machine-local state (trajectories, fixseq, outbox, active-set)
 .refine/
+
+# Local environment (template: .env.example, which stays tracked)
+.env
