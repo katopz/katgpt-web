@@ -1,0 +1,18 @@
+# cargo-deny configuration — the supply-chain advisories gate.
+# Landed via the plan 298 T2.4 fan-out residue (riir-refine pilot; M3-box
+# completion — Research 332 §T2.4). Division of labor: cargo-deny owns
+# vulnerable CRATES (lockfile surface); the sec corpus owns vulnerable
+# USAGE (code-span classes).
+#
+# Scope decision: ADVISORIES ONLY are gated (`cargo deny check advisories`).
+# licenses/bans/sources keep tool defaults until a later plan adjudicates
+# them per repo.
+#
+# The ignore list is a MEMBERSHIP PIN: every row carries a reason + a tracking
+# reference. A bare ignore entry with no reason is a defect in this file.
+# This repo's list is empty — the first scan found no deny-level advisories
+# at landing (2026-10-27, cargo-deny 0.20.2).
+
+[advisories]
+version = 2
+ignore = []

@@ -48,6 +48,7 @@ npm install
 npm run dev          # http://localhost:5173
 npm run build        # → dist/
 npm run build:wasm   # only after editing crates/sudoku-wasm
+./scripts/deny_gate.sh                        # cargo-deny advisories gate (plan 298 T2.4 fan-out residue, M3 box; riir-refine pilot): vulnerable CRATES at lockfile level, advisories-only scope — the deny.toml ignore list is a membership pin (reason + tracking ref per row); --scan is a workspace report-only sweep; a missing cargo-deny is a LOUD SKIP; standalone (CI wiring is plan-298 T2.7, owner-gated)
                      # (wasm-pack → src/wasm/sudoku/, then re-run npm run build)
 ```
 
